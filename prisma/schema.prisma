@@ -1,0 +1,266 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  // output = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+    role        Role         @default(STAFF)
+    activityLogs ActivityLog[]
+  permissions UserPermission[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permission   Permission
+
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, permission])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          String              @id @default(uuid())
+  code        String              @unique
+  name        String
+  description String?
+  barcode     String?             @unique
+  unit        String              @default("pcs")
+  minStock    Int                 @default(0)
+  categoryId  String
+  category    Category            @relation(fields: [categoryId], references: [id])
+  stocks      Stock[]
+  movements   StockMovement[]
+  orderItems  PurchaseOrderItem[]
+  salesItems  SalesOrderItem[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Warehouse {
+  id        String          @id @default(uuid())
+  name      String
+  location  String?
+  stocks    Stock[]
+  movements StockMovement[]
+}
+
+model Stock {
+  id          String    @id @default(uuid())
+  quantity    Int       @default(0)
+  productId   String
+  warehouseId String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  @@unique([productId, warehouseId])
+}
+
+model StockMovement {
+  id          String       @id @default(uuid())
+  type        MovementType
+  quantity    Int
+  note        String?
+  productId   String
+  warehouseId String
+  product     Product      @relation(fields: [productId], references: [id])
+  warehouse   Warehouse    @relation(fields: [warehouseId], references: [id])
+  createdAt   DateTime     @default(now())
+}
+
+enum MovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+  RETURN
+}
+
+model Supplier {
+  id             String          @id @default(uuid())
+  name           String
+  phone          String?
+  email          String?
+  address        String?
+  createdAt      DateTime        @default(now())
+
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+  status     OrderStatus         @default(PENDING)
+  supplierId String
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  items      PurchaseOrderItem[]
+  createdAt  DateTime            @default(now())
+}
+
+model PurchaseOrderItem {
+  id        String        @id @default(uuid())
+  quantity  Int
+  price     Float
+  orderId   String
+  productId String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id])
+  product   Product       @relation(fields: [productId], references: [id])
+}
+
+model Customer {
+  id          String       @id @default(uuid())
+  name        String
+  phone       String?
+    email String @unique 
+  address     String?
+  salesOrders SalesOrder[]
+}
+
+model SalesOrder {
+  id         String           @id @default(uuid())
+  status     OrderStatus      @default(PENDING)
+  customerId String
+  customer   Customer         @relation(fields: [customerId], references: [id])
+  items      SalesOrderItem[]
+  createdAt  DateTime         @default(now())
+}
+
+model SalesOrderItem {
+  id        String     @id @default(uuid())
+  quantity  Int
+  price     Float
+  orderId   String
+  productId String
+  order     SalesOrder @relation(fields: [orderId], references: [id])
+  product   Product    @relation(fields: [productId], references: [id])
+}
+
+model Invoice {
+  id          String   @id @default(uuid())
+  type        InvoiceType
+  status      InvoiceStatus @default(PENDING)
+  total       Float
+  customerId  String?
+  supplierId  String?
+  salesOrderId String?
+  purchaseOrderId String?
+  createdAt   DateTime @default(now())
+}
+
+model Department {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+model Position {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+model Employee {
+  id           String     @id @default(uuid())
+  name         String
+  email        String?    @unique
+  phone        String?
+  salary       Float?
+  hireDate     DateTime   @default(now())
+
+  departmentId String
+  positionId   String
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  position     Position   @relation(fields: [positionId], references: [id])
+
+  createdAt    DateTime   @default(now())
+}
+
+enum InvoiceType {
+  SALES
+  PURCHASE
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+}
+
+model ActivityLog {
+  id         String       @id @default(uuid())
+  type       ActivityType
+  actorId    String?
+  entityType String
+  entityId   String
+  delta      Json?
+  metadata   Json?
+  createdAt  DateTime     @default(now())
+
+  actor      User?        @relation(fields: [actorId], references: [id])
+}
+
+enum ActivityType {
+  STOCK_IN
+  STOCK_OUT
+  STOCK_TRANSFER
+  STOCK_ADJUSTMENT
+  SALE_CREATED
+  SALE_CONFIRMED
+  SALE_DELIVERED
+  SALE_CANCELLED
+  PURCHASE_CREATED
+  PURCHASE_CONFIRMED
+  PURCHASE_DELIVERED
+  EMPLOYEE_CREATED
+  EMPLOYEE_UPDATED
+  INVOICE_CREATED
+  INVOICE_PAID
+}
+
+enum Permission {
+  VIEW_DASHBOARD
+  MANAGE_PRODUCTS
+  MANAGE_CATEGORIES
+  MANAGE_WAREHOUSES
+  MANAGE_STOCK
+  MANAGE_SUPPLIERS
+  MANAGE_CUSTOMERS
+  MANAGE_SALES
+  MANAGE_PURCHASES
+}
