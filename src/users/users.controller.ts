@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common'; // 👈 أضفنا استيراد Query هنا
 import { UsersService } from './users.service.js';
 
 class CreateUserDto {
@@ -18,8 +18,8 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() query: any) { // 👈 استقبلنا الـ Query params القادمة من المتصفح هنا
+    return this.usersService.findAll(query); // 👈 قمنا بتمريها للـ Service لتنفيذ الفلترة والترقيم
   }
 
   @Delete(':id')

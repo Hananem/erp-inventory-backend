@@ -27,7 +27,7 @@ export class CustomersService {
   data: {
     name: dto.name,
     phone: dto.phone,
-    email: dto.email ?? null,
+        email: dto.email,
     address: dto.address,
   },
 });

@@ -7,19 +7,22 @@ import { Prisma } from '@prisma/client';
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateCategoryDto) {
-    const exists = await this.prisma.category.findUnique({
-      where: { name: dto.name },
-    });
+async create(dto: CreateCategoryDto) {
+  try {
+    console.log('Category.create dto=', dto);
+    const exists = await this.prisma.category.findUnique({ where: { name: dto.name }});
+    if (exists) throw new ConflictException('Category already exists');
 
-    if (exists) {
-      throw new ConflictException('Category already exists');
-    }
-
-    return this.prisma.category.create({
-      data: dto,
-    });
+    const data: any = { name: dto.name };
+    // فقط أضف حقول تعرف أنها في schema
+    const created = await this.prisma.category.create({ data });
+    console.log('Created', created);
+    return created;
+  } catch (err) {
+    console.error('Category.create error', err);
+    throw err;
   }
+}
 
   async findAll(query: any) {
     const {

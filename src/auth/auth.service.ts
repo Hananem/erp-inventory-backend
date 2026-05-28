@@ -11,14 +11,21 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    // 🟢 قمنا بتعديل الاستعلام لتضمين بيانات جدول الـ Role الجديد المرتبط بالمستخدم
+    const user = await this.prisma.user.findUnique({ 
+      where: { email },
+      include: {
+        role: true // جلب بيانات الدور بالكامل من قاعدة البيانات
+      }
+    });
 
     if (!user) throw new UnauthorizedException('البريد أو كلمة المرور غير صحيحة');
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('البريد أو كلمة المرور غير صحيحة');
 
-    const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role });
+    // 🟢 قمنا بتغيير user.role إلى user.role?.name لاستخراج النص ("ADMIN" أو "محاسب" إلخ) بشكل آمن
+    const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role?.name });
 
     return {
       token,
@@ -26,7 +33,7 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role?.name, // 🟢 إرجاع اسم الدور للفرونت اند
       },
     };
   }

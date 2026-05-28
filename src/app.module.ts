@@ -17,6 +17,9 @@ import { DepartmentsModule } from './departments/departments.module';
 import { PositionsModule } from './positions/positions.module';
 import { EmployeesModule } from './employees/employees.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
+import { PermissionsController } from './permissions/permissions.controller';
+import { PermissionsService } from './permissions/permissions.service';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -38,6 +41,9 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
     PositionsModule,
     EmployeesModule,
     ActivityLogModule,
+    RolesModule,
   ],
+  controllers: [PermissionsController],
+  providers: [PermissionsService],
 })
 export class AppModule {}

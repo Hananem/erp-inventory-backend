@@ -13,32 +13,51 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-    role        Role         @default(STAFF)
-    activityLogs ActivityLog[]
-  permissions UserPermission[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  
+  // 1. قمنا بتغيير الـ Role من Enum إلى علاقة مع جدول الـ Role الديناميكي الجديد
+  roleId       String?       
+  role         Role?         @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  
+  activityLogs ActivityLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
-
-model UserPermission {
-  id           String     @id @default(uuid())
-  userId       String
-  permission   Permission
-
-  user         User       @relation(fields: [userId], references: [id])
-
-  @@unique([userId, permission])
+// 2. جدول الأدوار الديناميكي الجديد (يطابق حقول صفحة الـ Roles تماماً)
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique // مثال: "مدير مستودع"، "محاسب"
+  description String?          // وصف الدور
+  users       User[]           // علاقة لجلب عدّ المستخدمين المشتركين بهذا الدور (userCount)
+  permissions RolePermission[] // الصلاحيات المربوطة بهذا الدور
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
-enum Role {
-  ADMIN
-  MANAGER
-  STAFF
+// 3. جدول وسيط يربط الـ Role بالصلاحيات المتاحة في الـ Enum الخاص بك
+model RolePermission {
+  roleId     String
+  permission Permission       // الـ Enum الأصلي الخاص بك (VIEW_DASHBOARD, MANAGE_PRODUCTS إلخ)
+  role       Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permission]) // لضمان عدم تكرار نفس الصلاحية لنفس الدور
+}
+
+// الـ Enum الخاص بالصلاحيات يبقى كما هو تماماً ليعمل كمصدر أساسي للخيارات
+enum Permission {
+  VIEW_DASHBOARD
+  MANAGE_PRODUCTS
+  MANAGE_CATEGORIES
+  MANAGE_WAREHOUSES
+  MANAGE_STOCK
+  MANAGE_SUPPLIERS
+  MANAGE_CUSTOMERS
+  MANAGE_SALES
+  MANAGE_PURCHASES
 }
 
 model Category {
@@ -137,7 +156,7 @@ model Customer {
   id          String       @id @default(uuid())
   name        String
   phone       String?
-    email String @unique 
+  email       String?
   address     String?
   salesOrders SalesOrder[]
 }
@@ -253,14 +272,3 @@ enum ActivityType {
   INVOICE_PAID
 }
 
-enum Permission {
-  VIEW_DASHBOARD
-  MANAGE_PRODUCTS
-  MANAGE_CATEGORIES
-  MANAGE_WAREHOUSES
-  MANAGE_STOCK
-  MANAGE_SUPPLIERS
-  MANAGE_CUSTOMERS
-  MANAGE_SALES
-  MANAGE_PURCHASES
-}
